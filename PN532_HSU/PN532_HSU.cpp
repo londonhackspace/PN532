@@ -45,32 +45,52 @@ int8_t PN532_HSU::writeCommand(const uint8_t *header, uint8_t hlen, const uint8_
         DMSG_HEX(ret);
     }
 
+    DMSG_STR("");
+
+    // for some reason this is what fixes it:
+    // maybe there is a setting to stop it sleeping or something?
+    wakeup();
+
     command = header[0];
     
     _serial->write((uint8_t)PN532_PREAMBLE);
+    DMSG_HEX(PN532_PREAMBLE);
     _serial->write((uint8_t)PN532_STARTCODE1);
+    DMSG_HEX(PN532_STARTCODE1);
     _serial->write((uint8_t)PN532_STARTCODE2);
+    DMSG_HEX(PN532_STARTCODE2);
     
     uint8_t length = hlen + blen + 1;   // length of data field: TFI + DATA
     _serial->write(length);
-    _serial->write(~length + 1);         // checksum of length
+    DMSG_HEX(length);
+    _serial->write((uint8_t)~length + 1);         // checksum of length
+    DMSG_HEX((uint8_t)~length + 1);
     
     _serial->write((uint8_t)PN532_HOSTTOPN532);
+    DMSG_HEX(PN532_HOSTTOPN532);
     uint8_t sum = PN532_HOSTTOPN532;    // sum of TFI + DATA
     
     _serial->write(header, hlen);
     for (uint8_t i = 0; i < hlen; i++) {
         sum += header[i];
+        DMSG_HEX(header[i]);
     }
 
     _serial->write(body, blen);
     for (uint8_t i = 0; i < blen; i++) {
         sum += body[i];
+        DMSG_HEX(body[i]);
     }
     
     uint8_t checksum = ~sum + 1;            // checksum of TFI + DATA
     _serial->write(checksum);
+    DMSG_HEX(checksum);
     _serial->write((uint8_t)PN532_POSTAMBLE);
+    DMSG_HEX((uint8_t)PN532_POSTAMBLE);
+
+    DMSG_STR("");
+
+    DMSG_STR("about to readackframe");
 
     return readAckFrame();
 }
@@ -85,7 +105,7 @@ int16_t PN532_HSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
     if(receive(tmp, 3, timeout)<=0){
         return PN532_TIMEOUT;
     }
-    if(0 != tmp[0] || 0!= tmp[1] || 0xFF != tmp[2]){
+    if(0 != tmp[0] || 0 != tmp[1] || 0xFF != tmp[2]){
         DMSG("Preamble error");
         return PN532_INVALID_FRAME;
     }
@@ -130,7 +150,7 @@ int16_t PN532_HSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         DMSG("Checksum error");
         return PN532_INVALID_FRAME;
     }
-    
+
     return length[0];
 }
 
@@ -163,18 +183,26 @@ int8_t PN532_HSU::readAckFrame()
 int8_t PN532_HSU::receive(uint8_t *buf, int len, uint16_t timeout)
 {
   int read_bytes = 0;
-  int ret;
+  int ret = -1;
   unsigned long start_millis;
-  
+
   while (read_bytes < len) {
     start_millis = millis();
+    ret = -1;
     do {
-      ret = _serial->read();
+      if (_serial->available() > 0) {
+        ret = _serial->read();
+      }
       if (ret >= 0) {
         break;
-     }
+      }
+      delay(1);
     } while( (millis()- start_millis ) < timeout);
-    
+
+    if (ret >= 0) {
+      DMSG_HEX(ret);
+    }
+
     if (ret < 0) {
         if(read_bytes){
             return read_bytes;
@@ -183,8 +211,8 @@ int8_t PN532_HSU::receive(uint8_t *buf, int len, uint16_t timeout)
         }
     }
     buf[read_bytes] = (uint8_t)ret;
-    DMSG_HEX(ret);
     read_bytes++;
   }
+  DMSG_STR("");
   return read_bytes;
 }
