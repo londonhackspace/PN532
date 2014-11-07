@@ -49,7 +49,7 @@ int8_t PN532_HSU::writeCommand(const uint8_t *header, uint8_t hlen, const uint8_
 
     // for some reason this is what fixes it:
     // maybe there is a setting to stop it sleeping or something?
-    wakeup();
+    zz_wakeup();
 
     command = header[0];
     
