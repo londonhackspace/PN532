@@ -48,7 +48,7 @@ PN532::PN532(PN532Interface &interface)
 void PN532::begin()
 {
     HAL(begin)();
-    HAL(wakeup)();
+    HAL(zz_wakeup)();
 }
 
 /**************************************************************************/

@@ -16,7 +16,7 @@ void PN532_I2C::begin()
     _wire->begin();
 }
 
-void PN532_I2C::wakeup()
+void PN532_I2C::zz_wakeup()
 {
     _wire->beginTransmission(PN532_I2C_ADDRESS); // I2C start
     delay(20);

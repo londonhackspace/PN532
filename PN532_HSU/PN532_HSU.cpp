@@ -14,7 +14,7 @@ void PN532_HSU::begin()
     _serial->begin((long)115200);
 }
 
-void PN532_HSU::wakeup()
+void PN532_HSU::zz_wakeup()
 {
     _serial->write((uint8_t)0x55);
     _serial->write((uint8_t)0x55);

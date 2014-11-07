@@ -13,7 +13,7 @@ public:
     PN532_HSU(HardwareSerial &serial);
     
     void begin();
-    void wakeup();
+    void zz_wakeup();
     virtual int8_t writeCommand(const uint8_t *header, uint8_t hlen, const uint8_t *body = 0, uint8_t blen = 0);
     int16_t readResponse(uint8_t buf[], uint8_t len, uint16_t timeout);
     

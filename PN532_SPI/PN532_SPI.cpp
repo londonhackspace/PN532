@@ -29,7 +29,7 @@ void PN532_SPI::begin()
 
 }
 
-void PN532_SPI::wakeup()
+void PN532_SPI::zz_wakeup()
 {
     digitalWrite(_ss, LOW);
     delay(2);

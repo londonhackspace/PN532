@@ -28,7 +28,7 @@ class PN532Interface
 {
 public:
     virtual void begin() = 0;
-    virtual void wakeup() = 0;
+    virtual void zz_wakeup() = 0;
 
     /**
     * @brief    write a command and check ack
