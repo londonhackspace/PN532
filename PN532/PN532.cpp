@@ -227,12 +227,42 @@ bool PN532::SAMConfig(void)
     pn532_packetbuffer[2] = 0x14; // timeout 50ms * 20 = 1 second
     pn532_packetbuffer[3] = 0x01; // use IRQ pin!
 
-    DMSG("SAMConfig\n");
+    DMSG_STR("SAMConfig");
 
     if (HAL(writeCommand)(pn532_packetbuffer, 4))
         return false;
 
     return (0 < HAL(readResponse)(pn532_packetbuffer, sizeof(pn532_packetbuffer)));
+}
+
+/**************************************************************************/
+/*!
+    @brief  Power the PN532 down
+*/
+/**************************************************************************/
+bool PN532::powerDown(void)
+{
+    pn532_packetbuffer[0] = PN532_COMMAND_POWERDOWN;
+    pn532_packetbuffer[1] = 0b10111000; // wakeup enable, all apart from gpio, int0 and int1 (bit 2 reserved)
+    pn532_packetbuffer[2] = 0x01; // use IRQ pin!
+
+    DMSG_STR("PowerDown");
+
+    if (HAL(writeCommand)(pn532_packetbuffer, 3))
+        return false;
+
+    int ret;
+    ret = HAL(readResponse)(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+    
+    DMSG_STR("PowerDown debug: ");
+    DMSG_INT(ret);
+    DMSG_STR("");
+    
+    PrintHexChar(pn532_packetbuffer, ret);
+    DMSG_STR("");
+    DMSG_STR("PowerDown Done");
+
+    return (0 < ret);
 }
 
 /**************************************************************************/
@@ -254,6 +284,26 @@ bool PN532::setPassiveActivationRetries(uint8_t maxRetries)
     pn532_packetbuffer[4] = maxRetries;
 
     if (HAL(writeCommand)(pn532_packetbuffer, 5))
+        return 0x0;  // no ACK
+
+    return (0 < HAL(readResponse)(pn532_packetbuffer, sizeof(pn532_packetbuffer)));
+}
+
+bool PN532::setParameters(void) {
+    pn532_packetbuffer[0] = PN532_COMMAND_SETPARAMETERS;
+    /*
+    0 - NAD 			off by default	0
+    1 - fDIDUsed		off by default	0
+    2 - fAutomaticATR_RES	on by default	1
+    3 - 			must be off	0
+    4 - fAutomaticRATS		on by default	1
+    5 - fISO14443-4_PICC	on by default	1
+    6 - fRemovePrePostAmble	off by default  0
+    7 - 			must be off	0
+    */
+    pn532_packetbuffer[1] = 0x34;  // defaults
+
+    if (HAL(writeCommand)(pn532_packetbuffer, 2))
         return 0x0;  // no ACK
 
     return (0 < HAL(readResponse)(pn532_packetbuffer, sizeof(pn532_packetbuffer)));
@@ -311,7 +361,7 @@ bool PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid, uint8_t *uid
 
     DMSG("ATQA: 0x");  DMSG_HEX(sens_res);
     DMSG("SAK: 0x");  DMSG_HEX(pn532_packetbuffer[4]);
-    DMSG("\n");
+    DMSG_STR("");
 
     /* Card appears to be Mifare Classic */
     *uidLength = pn532_packetbuffer[5];

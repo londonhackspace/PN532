@@ -139,6 +139,9 @@ public:
     uint8_t readGPIO(void);
     bool setPassiveActivationRetries(uint8_t maxRetries);
 
+    bool setParameters(void);
+    bool powerDown(void);
+
     /**
     * @brief    Init PN532 as a target
     * @param    timeout max time to wait, 0 means no timeout

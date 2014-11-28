@@ -2,16 +2,68 @@
 #include "PN532_HSU.h"
 #include "PN532_debug.h"
 
+volatile int was_intr;
+volatile int low_count;
+volatile int high_count;
+int intr_pin;
 
 PN532_HSU::PN532_HSU(HardwareSerial &serial)
 {
     _serial = &serial;
+    _pin = -1;
+    intr_pin = _pin;
     command = 0;
+    was_intr = 0;
+}
+
+// we were using PD_2
+PN532_HSU::PN532_HSU(HardwareSerial &serial, int pin)
+{
+    _serial = &serial;
+    _pin = pin;
+    intr_pin = pin;
+    command = 0;
+    was_intr = 0;
+}
+
+/*
+ * on the Cooqrobot board the IRQ pin is the P70_IRQ one on the PN532
+ * IRQ goes low?
+ *
+ */
+void isr(void) {
+    was_intr = 1;
+    
+    if (digitalRead(intr_pin)) {
+      high_count++;
+    } else {
+      low_count++;
+    }
+}
+
+void PN532_HSU::intr_check() {
+  Serial.println("checking...");
+  if (was_intr) {
+    Serial.print("was inturupted: ");
+    Serial.print(high_count);
+    Serial.print(" / ");
+    Serial.println(low_count);
+    was_intr = 0;
+  }
 }
 
 void PN532_HSU::begin()
 {
     _serial->begin((long)115200);
+    low_count = 0;
+    high_count = 0;
+    was_intr = 1;
+    if (_pin != -1) {
+      // or not a pullup?
+      pinMode(_pin, INPUT_PULLUP);
+      // should be falling (high -> low).
+      attachInterrupt(_pin, isr, CHANGE);
+    }
 }
 
 void PN532_HSU::zz_wakeup()
@@ -99,7 +151,7 @@ int16_t PN532_HSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
 {
     uint8_t tmp[3];
     
-    DMSG("Read response\n");
+    DMSG_STR("Read response");
     
     /** Frame Preamble and Start Code */
     if(receive(tmp, 3, timeout)<=0){
@@ -159,7 +211,7 @@ int8_t PN532_HSU::readAckFrame()
     const uint8_t PN532_ACK[] = {0, 0, 0xFF, 0, 0xFF, 0};
     uint8_t ackBuf[sizeof(PN532_ACK)];
     
-    DMSG("Read Ack\n");
+    DMSG_STR("Read Ack");
     
     if( receive(ackBuf, sizeof(PN532_ACK)) <= 0 ){
         DMSG("Read ACK Timeout\n");
@@ -204,9 +256,9 @@ int8_t PN532_HSU::receive(uint8_t *buf, int len, uint16_t timeout)
     }
 
     if (ret < 0) {
-        if(read_bytes){
+        if (read_bytes) {
             return read_bytes;
-        }else{
+        } else {
             return PN532_TIMEOUT;
         }
     }
